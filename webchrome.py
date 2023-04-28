@@ -20,6 +20,8 @@ def open_chart(currency_pair=None):
     search_bar.send_keys('BTCUSD')
     search_bar.send_keys(Keys.RETURN)
 
+    chart = driver.find_element_by_xpath("/html/body/div[2]/div[1]")
+    chart.send_keys(Keys.ALT + 'h')
     # Wait for the search results to load
     time.sleep(2)
 
