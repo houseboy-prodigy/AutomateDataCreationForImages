@@ -3,6 +3,21 @@ import random
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+import csv
+def write_csv_row(id, first_line_val, second_line_val, screenshot_path):
+    with open('training_data.csv', mode='a', newline='') as csv_file:
+        fieldnames = ['id', 'first_line_val', 'second_line_val', 'screenshot_path']
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+        if csv_file.tell() == 0:
+            writer.writeheader()
+
+        writer.writerow({
+            'id': id,
+            'first_line_val': first_line_val,
+            'second_line_val': second_line_val,
+            'screenshot_path': screenshot_path
+        })
 
 def open_chart(index):
     driver = initialize_driver()
@@ -12,9 +27,11 @@ def open_chart(index):
     search_currency_pair(driver, 'BTCUSD')
     time.sleep(5)
 
-    for _ in range(2):
-        random_x1, random_y1, random_x2, random_y2 = make_lines_and_get_screenshot(driver, index)
+    for _ in range(3):
+        random_x1, random_y1, random_x2, random_y2, first_line_val, second_line_val = make_lines_and_get_screenshot(driver, index)
         index += 1
+        screenshot_path = f"/Users/Anshul/PycharmProjects/pythonProject/testPhotos/chart{index}.png"
+        write_csv_row(index-1, first_line_val, second_line_val, screenshot_path)
         remove_drawings(driver, random_x1, random_y1)
         remove_drawings(driver, random_x2, random_y2)
 
@@ -42,18 +59,18 @@ def make_lines_and_get_screenshot(driver, index):
 
     draw_horizontal_line(driver,chart, random_x1, random_y1)
     first_line_val = get_line_value(driver)
-    print(first_line_val)
+
 
     draw_horizontal_line(driver, chart, random_x2, random_y2)
     second_line_val = get_line_value(driver)
-    print(second_line_val)
+
 
     time.sleep(2)
     chart.click()
     time.sleep(2)
     driver.save_screenshot(f"/Users/Anshul/PycharmProjects/pythonProject/testPhotos/chart{index}.png")
 
-    return random_x1, random_y1, random_x2, random_y2
+    return random_x1, random_y1, random_x2, random_y2, first_line_val, second_line_val
 
 def get_chart_element(driver):
     return driver.find_element_by_xpath("//div[contains(@class, 'chart-gui-wrapper')]")
@@ -84,6 +101,25 @@ def remove_drawings(driver, random_x1, random_y1):
     new_Action = ActionChains(driver)
     new_Action.move_to_element_with_offset(chart, random_x1, random_y1).click().send_keys(Keys.DELETE).perform()
 
+import os
+import re
+
+def find_chart_index(directory_path):
+    chart_pattern = re.compile(r'chart(\d+)\.png')
+
+    chart_indices = []
+
+    for filename in os.listdir(directory_path):
+        match = chart_pattern.match(filename)
+        if match:
+            chart_indices.append(int(match.group(1)))
+
+    chart_indices.sort()
+    if chart_indices:
+        return chart_indices[-1] + 1
+    else:
+        return 1
+
 if __name__ == "__main__":
-    ChartIndex = 5
+    ChartIndex = find_chart_index("/Users/Anshul/PycharmProjects/pythonProject/testPhotos")
     open_chart(ChartIndex)
