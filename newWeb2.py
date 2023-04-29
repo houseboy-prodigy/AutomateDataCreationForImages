@@ -4,6 +4,9 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import csv
+import argparse
+from PIL import Image
+
 def write_csv_row(id, first_line_val, second_line_val, screenshot_path):
     with open('training_data.csv', mode='a', newline='') as csv_file:
         fieldnames = ['id', 'first_line_val', 'second_line_val', 'screenshot_path']
@@ -19,15 +22,15 @@ def write_csv_row(id, first_line_val, second_line_val, screenshot_path):
             'screenshot_path': screenshot_path
         })
 
-def open_chart(index):
+def open_chart(index, currency='BTCUSD'):
     driver = initialize_driver()
     driver.get("https://www.tradingview.com/")
     time.sleep(2)
 
-    search_currency_pair(driver, 'BTCUSD')
+    search_currency_pair(driver, currency)
     time.sleep(5)
 
-    for _ in range(3):
+    for _ in range(1):
         random_x1, random_y1, random_x2, random_y2, first_line_val, second_line_val = make_lines_and_get_screenshot(driver, index)
         index += 1
         screenshot_path = f"/Users/Anshul/PycharmProjects/pythonProject/testPhotos/chart{index}.png"
@@ -52,8 +55,8 @@ def search_currency_pair(driver, currency_pair):
 def make_lines_and_get_screenshot(driver, index):
     chart = get_chart_element(driver)
     chart_width, chart_height = get_chart_dimensions(chart)
-
-
+    chart_location = chart.location
+    print(chart_width,chart_height,chart_location)
     random_x1, random_y1 = generate_random_coordinates(chart_width, chart_height)
     random_x2, random_y2 = generate_random_coordinates(chart_width, chart_height)
 
@@ -68,8 +71,18 @@ def make_lines_and_get_screenshot(driver, index):
     time.sleep(2)
     chart.click()
     time.sleep(2)
-    driver.save_screenshot(f"/Users/Anshul/PycharmProjects/pythonProject/testPhotos/chart{index}.png")
+    screenshot_path = f"/Users/Anshul/PycharmProjects/pythonProject/testPhotos/chart{index}.png"
+    driver.save_screenshot(screenshot_path)    # Crop the screenshot to only include the chart area
+    screenshot = Image.open(screenshot_path)
 
+    chart_area = (
+        chart_location['x'],
+        chart_location['y'],
+        chart_location['x'] + chart_width + 900,
+        chart_location['y'] + chart_height + 600
+    )
+    cropped_screenshot = screenshot.crop(chart_area)
+    cropped_screenshot.save(screenshot_path)
     return random_x1, random_y1, random_x2, random_y2, first_line_val, second_line_val
 
 def get_chart_element(driver):
@@ -119,7 +132,13 @@ def find_chart_index(directory_path):
         return chart_indices[-1] + 1
     else:
         return 1
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="TradingView chart automation script.")
+    parser.add_argument('--currency', type=str, default='BTCUSD', help="Currency pair to search on TradingView (default: BTCUSD)")
+    args = parser.parse_args()
+    return args
 
 if __name__ == "__main__":
+    args = parse_arguments()
     ChartIndex = find_chart_index("/Users/Anshul/PycharmProjects/pythonProject/testPhotos")
-    open_chart(ChartIndex)
+    open_chart(ChartIndex,currency=args.currency)
