@@ -14,7 +14,7 @@ def open_chart(currency_pair=None):
     # Wait for the page to load
     time.sleep(2)
 
-    # Find the search bar and enter the currency pair
+    #Find the search bar and enter the currency pair
     search_bar = driver.find_element_by_xpath("//*[@id='tv-content']/div[1]/div[1]/div[2]/div[1]/div/button/span")
     search_bar.click()
     time.sleep(2)
