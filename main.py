@@ -27,7 +27,7 @@ def open_chart(currency_pair):
     search_bar.send_keys(currency_pair)
     search_bar.send_keys(Keys.RETURN)
 
-    # Wait for the search results to load
+    #Wait for the search results to load
     time.sleep(2)
 
     # Click the first search result
