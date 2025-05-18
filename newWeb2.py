@@ -1,5 +1,7 @@
 import time
 import random
+import os
+import re
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
@@ -22,8 +24,8 @@ def write_csv_row(id, first_line_val, second_line_val, screenshot_path):
             'screenshot_path': screenshot_path
         })
 
-def open_chart(index, currency='BTCUSD'):
-    driver = initialize_driver()
+def open_chart(index, currency='BTCUSD', driver_path=None, screenshot_dir='./screenshots'):
+    driver = initialize_driver(driver_path)
     driver.get("https://www.tradingview.com/")
     time.sleep(2)
 
@@ -31,15 +33,15 @@ def open_chart(index, currency='BTCUSD'):
     time.sleep(5)
 
     for _ in range(1):
-        random_x1, random_y1, random_x2, random_y2, first_line_val, second_line_val = make_lines_and_get_screenshot(driver, index)
+        random_x1, random_y1, random_x2, random_y2, first_line_val, second_line_val, screenshot_path = make_lines_and_get_screenshot(driver, index, screenshot_dir)
         index += 1
-        screenshot_path = f"/Users/Anshul/PycharmProjects/pythonProject/testPhotos/chart{index}.png"
         write_csv_row(index-1, first_line_val, second_line_val, screenshot_path)
         remove_drawings(driver, random_x1, random_y1)
         remove_drawings(driver, random_x2, random_y2)
 
-def initialize_driver():
-    driver_path = "/Users/Anshul/PycharmProjects/pythonProject/chromedriver"
+def initialize_driver(driver_path=None):
+    if driver_path is None:
+        driver_path = os.environ.get('CHROMEDRIVER_PATH', 'chromedriver')
     driver = webdriver.Chrome(executable_path=driver_path)
     return driver
 
@@ -52,7 +54,7 @@ def search_currency_pair(driver, currency_pair):
     search_bar.send_keys(currency_pair)
     search_bar.send_keys(Keys.RETURN)
 
-def make_lines_and_get_screenshot(driver, index):
+def make_lines_and_get_screenshot(driver, index, screenshot_dir):
     chart = get_chart_element(driver)
     chart_width, chart_height = get_chart_dimensions(chart)
     chart_location = chart.location
@@ -71,7 +73,7 @@ def make_lines_and_get_screenshot(driver, index):
     time.sleep(2)
     chart.click()
     time.sleep(2)
-    screenshot_path = f"/Users/Anshul/PycharmProjects/pythonProject/testPhotos/chart{index}.png"
+    screenshot_path = os.path.join(screenshot_dir, f"chart{index}.png")
     driver.save_screenshot(screenshot_path)    # Crop the screenshot to only include the chart area
     screenshot = Image.open(screenshot_path)
 
@@ -83,7 +85,7 @@ def make_lines_and_get_screenshot(driver, index):
     )
     cropped_screenshot = screenshot.crop(chart_area)
     cropped_screenshot.save(screenshot_path)
-    return random_x1, random_y1, random_x2, random_y2, first_line_val, second_line_val
+    return random_x1, random_y1, random_x2, random_y2, first_line_val, second_line_val, screenshot_path
 
 def get_chart_element(driver):
     return driver.find_element_by_xpath("//div[contains(@class, 'chart-gui-wrapper')]")
@@ -114,9 +116,6 @@ def remove_drawings(driver, random_x1, random_y1):
     new_Action = ActionChains(driver)
     new_Action.move_to_element_with_offset(chart, random_x1, random_y1).click().send_keys(Keys.DELETE).perform()
 
-import os
-import re
-
 def find_chart_index(directory_path):
     chart_pattern = re.compile(r'chart(\d+)\.png')
 
@@ -135,10 +134,16 @@ def find_chart_index(directory_path):
 def parse_arguments():
     parser = argparse.ArgumentParser(description="TradingView chart automation script.")
     parser.add_argument('--currency', type=str, default='BTCUSD', help="Currency pair to search on TradingView (default: BTCUSD)")
+    parser.add_argument('--driver-path', type=str, default=os.environ.get('CHROMEDRIVER_PATH', 'chromedriver'),
+                        help="Path to ChromeDriver executable (default: env CHROMEDRIVER_PATH or 'chromedriver')")
+    parser.add_argument('--screenshot-dir', type=str, default=os.environ.get('SCREENSHOT_DIR', './screenshots'),
+                        help="Directory to store screenshots (default: env SCREENSHOT_DIR or './screenshots')")
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
     args = parse_arguments()
-    ChartIndex = find_chart_index("/Users/Anshul/PycharmProjects/pythonProject/testPhotos")
-    open_chart(ChartIndex,currency=args.currency)
+    if not os.path.exists(args.screenshot_dir):
+        os.makedirs(args.screenshot_dir, exist_ok=True)
+    ChartIndex = find_chart_index(args.screenshot_dir)
+    open_chart(ChartIndex, currency=args.currency, driver_path=args.driver_path, screenshot_dir=args.screenshot_dir)
