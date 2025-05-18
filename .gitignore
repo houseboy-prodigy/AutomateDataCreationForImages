@@ -1,0 +1,17 @@
+# Ignore IDE configuration files
+.idea/
+
+# Ignore chromedriver binary
+chromedriver
+
+# Ignore Python bytecode
+*.py[cod]
+__pycache__/
+
+# Ignore temporary files
+*.log
+*.tmp
+*~
+*.swp
+.DS_Store
+
